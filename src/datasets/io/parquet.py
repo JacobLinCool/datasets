@@ -106,6 +106,9 @@ class ParquetDatasetWriter:
 
         writer = pq.ParquetWriter(file_obj, schema=schema, **parquet_writer_kwargs)
 
+        row_group_size = os.getenv("PARQUET_ROW_GROUP_SIZE")
+        row_group_size = int(row_group_size) if row_group_size is not None else None
+
         for offset in hf_tqdm(
             range(0, len(self.dataset), batch_size),
             unit="ba",
@@ -116,7 +119,10 @@ class ParquetDatasetWriter:
                 key=slice(offset, offset + batch_size),
                 indices=self.dataset._indices,
             )
-            writer.write_table(batch)
+            writer.write_table(
+                batch,
+                row_group_size=row_group_size,
+            )
             written += batch.nbytes
         writer.close()
         return written
